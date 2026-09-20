@@ -8,6 +8,12 @@
 //   - brands and light_types are created automatically if they don't exist
 //   - existing (brand, model) rows are updated in place (upsert), so this
 //     script is safe to re-run against an updated CSV
+//
+// Optional column: nicknames — semicolon-separated slang/crew names for the
+// fixture, e.g. "Mickey;Molewatt". If the column is present, a row's
+// nicknames fully replace whatever's currently stored for that light (empty
+// cell clears them). If the column is absent entirely, existing nicknames
+// are left untouched.
 import fs from 'node:fs';
 import { openDb } from './lib/db.js';
 import { parseWattage } from './lib/wattage.js';
@@ -71,6 +77,8 @@ function main() {
         }
     }
     const idx = Object.fromEntries(required.map((col) => [col, header.indexOf(col)]));
+    const hasNicknames = header.includes('nicknames');
+    if (hasNicknames) idx.nicknames = header.indexOf('nicknames');
 
     const db = openDb();
 
@@ -86,6 +94,9 @@ function main() {
             wattage = excluded.wattage,
             power_unit = excluded.power_unit
     `);
+    const getLightId = db.prepare('SELECT light_id FROM lights WHERE brand_id = ? AND model = ?');
+    const deleteNicknames = db.prepare('DELETE FROM light_nicknames WHERE light_id = ?');
+    const insertNickname = db.prepare('INSERT OR IGNORE INTO light_nicknames (light_id, nickname) VALUES (?, ?)');
 
     const brandCache = new Map();
     const typeCache = new Map();
@@ -163,6 +174,19 @@ function main() {
                 wattage,
                 power_unit: powerUnit,
             });
+            // last_insert_rowid() isn't updated when ON CONFLICT DO UPDATE
+            // takes the update path, so look the id up by its unique key.
+            const lightId = getLightId.get(brandId, model).light_id;
+
+            if (hasNicknames) {
+                const raw = fields[idx.nicknames] || '';
+                const nicknames = [...new Set(raw.split(';').map((n) => n.trim()).filter(Boolean))];
+                deleteNicknames.run(lightId);
+                for (const nickname of nicknames) {
+                    insertNickname.run(lightId, nickname);
+                }
+            }
+
             inserted++;
         });
     });

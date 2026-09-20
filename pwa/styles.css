@@ -212,10 +212,20 @@ main {
 }
 
 .card-model {
-  margin: 2px 0 8px;
+  margin: 2px 0 2px;
   font-size: 0.95rem;
   font-weight: 700;
   line-height: 1.25;
+}
+
+.card-nicknames {
+  margin: 0 0 8px;
+  font-size: 0.72rem;
+  font-style: italic;
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .card-meta {
@@ -502,8 +512,15 @@ main {
 }
 
 .detail-model {
-  margin: 4px 0 20px;
+  margin: 4px 0 4px;
   font-size: 1.5rem;
+}
+
+.detail-nicknames {
+  margin: 0 0 20px;
+  font-size: 0.9rem;
+  font-style: italic;
+  color: var(--text-dim);
 }
 
 .detail-specs {

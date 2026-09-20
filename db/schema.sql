@@ -32,10 +32,20 @@ CREATE TABLE IF NOT EXISTS light_photos (
     is_primary INTEGER NOT NULL DEFAULT 0 CHECK (is_primary IN (0, 1))
 );
 
+-- Slang/crew names for a fixture (e.g. "Mickey", "Brute") so search finds a
+-- light by what people actually call it on set, not just brand/model.
+CREATE TABLE IF NOT EXISTS light_nicknames (
+    nickname_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    light_id INTEGER NOT NULL REFERENCES lights(light_id) ON DELETE CASCADE,
+    nickname TEXT NOT NULL,
+    UNIQUE (light_id, nickname)
+);
+
 CREATE INDEX IF NOT EXISTS idx_lights_brand ON lights(brand_id);
 CREATE INDEX IF NOT EXISTS idx_lights_type ON lights(type_id);
 CREATE INDEX IF NOT EXISTS idx_lights_wattage ON lights(wattage);
 CREATE INDEX IF NOT EXISTS idx_light_photos_light ON light_photos(light_id);
+CREATE INDEX IF NOT EXISTS idx_light_nicknames_light ON light_nicknames(light_id);
 
 -- Only one primary photo per light.
 CREATE UNIQUE INDEX IF NOT EXISTS idx_one_primary_photo

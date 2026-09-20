@@ -69,7 +69,7 @@ function matchesFilters(light) {
   const { search, brands, types, ballast, wattageMode, wattageExact, wattageMin, wattageMax } = state;
 
   if (search) {
-    const haystack = `${light.brand} ${light.model}`.toLowerCase();
+    const haystack = `${light.brand} ${light.model} ${(light.nicknames || []).join(' ')}`.toLowerCase();
     if (!haystack.includes(search)) return false;
   }
   if (brands.size > 0 && !brands.has(light.brand)) return false;
@@ -123,6 +123,11 @@ function renderGrid() {
     }
     node.querySelector('.card-brand').textContent = light.brand;
     node.querySelector('.card-model').textContent = light.model;
+    const nicknamesEl = node.querySelector('.card-nicknames');
+    if (light.nicknames && light.nicknames.length) {
+      nicknamesEl.textContent = `aka ${light.nicknames.join(', ')}`;
+      nicknamesEl.hidden = false;
+    }
     node.querySelector('.card-wattage').textContent = formatWattage(light.wattage);
     node.querySelector('.card-badge').textContent = light.type;
     card.addEventListener('click', () => openDetail(light.id));
@@ -153,6 +158,13 @@ function openDetail(lightId) {
 
   document.getElementById('detailBrand').textContent = light.brand;
   document.getElementById('detailModel').textContent = light.model;
+  const detailNicknames = document.getElementById('detailNicknames');
+  if (light.nicknames && light.nicknames.length) {
+    detailNicknames.textContent = `Also called: ${light.nicknames.join(', ')}`;
+    detailNicknames.hidden = false;
+  } else {
+    detailNicknames.hidden = true;
+  }
   document.getElementById('detailType').textContent = light.type;
   document.getElementById('detailWattage').textContent = formatWattage(light.wattage);
   document.getElementById('detailPower').textContent =

@@ -29,6 +29,12 @@ function main() {
         });
     }
 
+    const nicknamesByLight = new Map();
+    for (const n of db.prepare('SELECT light_id, nickname FROM light_nicknames ORDER BY nickname').all()) {
+        if (!nicknamesByLight.has(n.light_id)) nicknamesByLight.set(n.light_id, []);
+        nicknamesByLight.get(n.light_id).push(n.nickname);
+    }
+
     const data = {
         generatedAt: new Date().toISOString(),
         brands: [...new Set(lights.map((l) => l.brand))].sort(),
@@ -46,6 +52,7 @@ function main() {
                 needsBallast: l.power_unit !== 'none',
                 primaryPhoto: primary ? primary.path : null,
                 photos,
+                nicknames: nicknamesByLight.get(l.light_id) || [],
             };
         }),
     };
