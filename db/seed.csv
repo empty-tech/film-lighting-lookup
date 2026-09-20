@@ -1,0 +1,46 @@
+brand,model,type,wattage,power_unit
+ARRI,M18,HMI,1800,ballast
+ARRI,M40,HMI,4k,ballast
+ARRI,M90,HMI,9k,ballast
+ARRI,Arrimax 18/12,HMI,18k,ballast
+ARRI,Compact Par 6,HMI,1200,ballast
+ARRI,Daylight Compact 2500,HMI,2500,ballast
+ARRI,Daylight Compact 4000,HMI,4k,ballast
+ARRI,150 Plus,Tungsten,150,none
+ARRI,300 Plus,Tungsten,300,none
+ARRI,650 Plus,Tungsten,650,none
+ARRI,1000 Plus,Tungsten,1000,none
+ARRI,2000 Plus,Tungsten,2000,none
+ARRI,SkyPanel S30-C,LED,220,none
+ARRI,SkyPanel S60-C,LED,450,none
+ARRI,SkyPanel S360-C,LED,2500,external driver
+ARRI,Orbiter,LED,400,none
+Mole-Richardson,Baby-Baby 1K,Tungsten,1000,none
+Mole-Richardson,Junior 2K,Tungsten,2000,none
+Mole-Richardson,Senior 5K,Tungsten,5000,none
+Mole-Richardson,Tweenie 650,Tungsten,650,none
+Mole-Richardson,Tener-Tenner 10K,HMI,10k,ballast
+LTM,Pepper 650,Tungsten,650,none
+LTM,Cinepar 1200,HMI,1200,ballast
+Joker-Bug,Joker-Bug 400,HMI,400,ballast
+Joker-Bug,Joker-Bug 800,HMI,800,ballast
+Joker-Bug,Joker-Bug 1600,HMI,1600,ballast
+Kino Flo,Diva-Lite 401,Fluorescent,220,ballast
+Kino Flo,4Bank,Fluorescent,220,ballast
+Kino Flo,Image 80,Fluorescent,440,ballast
+Kino Flo,Diva-Lite LED,LED,90,none
+Kino Flo,Celeb 450 LED,LED,250,none
+Kino Flo,FreeStyle 31 LED,LED,150,none
+Litepanels,Gemini 2x1,LED,220,none
+Litepanels,Astra 6X,LED,125,none
+Astera,AX1 PixelTube,LED,12,none
+Astera,Titan Tube,LED,60,none
+Aputure,300d Mark II,LED,300,external driver
+Aputure,600d Pro,LED,600,external driver
+Aputure,Nova P600c,LED,600,none
+Quasar Science,Rainbow 2 Linear,LED,80,none
+Creamsource,Vortex8,LED,800,external driver
+Lowel,Omni-light,Tungsten,500,none
+Lowel,DP,Tungsten,1000,none
+ETC,Source Four 750W,Tungsten,750,none
+ETC,Source Four LED Series 2 Lustr,LED,90,none

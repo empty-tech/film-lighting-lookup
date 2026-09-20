@@ -1,0 +1,21 @@
+{
+  "name": "film-lighting-lookup",
+  "version": "1.0.0",
+  "description": "Offline-first PWA for looking up film lighting fixtures on set",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "db:init": "node scripts/init-db.js",
+    "db:load-csv": "node scripts/load-csv.js",
+    "db:scan-photos": "node scripts/scan-photos.js",
+    "db:check-photos": "node scripts/check-photos.js",
+    "photos:resize": "node scripts/resize-photos.js",
+    "build:data": "node scripts/export-json.js",
+    "build": "npm run db:check-photos && npm run photos:resize && npm run build:data",
+    "serve": "node scripts/serve.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.9.1",
+    "sharp": "^0.35.4"
+  }
+}

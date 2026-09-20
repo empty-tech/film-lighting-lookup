@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Fixture Lookup</title>
+  <meta name="description" content="Offline lookup for film lighting fixtures" />
+  <meta name="theme-color" content="#14161a" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Fixtures" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="offlineBadge" class="offline-badge" hidden>Offline</div>
+
+  <header class="app-header">
+    <h1 class="app-title">Fixtures</h1>
+    <div class="search-row">
+      <input
+        id="searchInput"
+        type="search"
+        inputmode="search"
+        placeholder="Search brand or model…"
+        autocomplete="off"
+        aria-label="Search fixtures"
+      />
+      <button id="filterToggle" class="filter-toggle" type="button" aria-haspopup="true" aria-expanded="false">
+        Filters
+        <span id="filterCount" class="filter-count" hidden>0</span>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <p id="resultCount" class="result-count" role="status"></p>
+    <div id="grid" class="grid" role="list"></div>
+    <p id="emptyState" class="empty-state" hidden>No fixtures match your filters.</p>
+  </main>
+
+  <!-- Filter bottom sheet -->
+  <div id="filterBackdrop" class="backdrop" hidden></div>
+  <section id="filterSheet" class="sheet" hidden aria-label="Filters">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <h2>Filters</h2>
+      <button id="filterClose" class="icon-btn" type="button" aria-label="Close filters">✕</button>
+    </div>
+
+    <div class="sheet-body">
+      <fieldset class="filter-group">
+        <legend>Type</legend>
+        <div id="typeOptions" class="chip-group"></div>
+      </fieldset>
+
+      <fieldset class="filter-group">
+        <legend>Brand</legend>
+        <div id="brandOptions" class="chip-group"></div>
+      </fieldset>
+
+      <fieldset class="filter-group">
+        <legend>Ballast</legend>
+        <div class="chip-group" id="ballastOptions">
+          <label class="chip"><input type="radio" name="ballast" value="any" checked /><span>Any</span></label>
+          <label class="chip"><input type="radio" name="ballast" value="yes" /><span>Needs ballast</span></label>
+          <label class="chip"><input type="radio" name="ballast" value="no" /><span>No ballast</span></label>
+        </div>
+      </fieldset>
+
+      <fieldset class="filter-group">
+        <legend>Wattage</legend>
+        <div class="chip-group" id="wattageMode">
+          <label class="chip"><input type="radio" name="wattageMode" value="any" checked /><span>Any</span></label>
+          <label class="chip"><input type="radio" name="wattageMode" value="exact" /><span>Exact</span></label>
+          <label class="chip"><input type="radio" name="wattageMode" value="range" /><span>Range</span></label>
+        </div>
+        <div id="wattageExactRow" class="wattage-row" hidden>
+          <input id="wattageExact" type="text" inputmode="numeric" placeholder="e.g. 4k or 4000" />
+        </div>
+        <div id="wattageRangeRow" class="wattage-row" hidden>
+          <input id="wattageMin" type="text" inputmode="numeric" placeholder="Min, e.g. 1k" />
+          <span class="range-sep">–</span>
+          <input id="wattageMax" type="text" inputmode="numeric" placeholder="Max, e.g. 10k" />
+        </div>
+        <p id="wattageError" class="field-error" hidden></p>
+      </fieldset>
+    </div>
+
+    <div class="sheet-footer">
+      <button id="clearFilters" class="btn btn-secondary" type="button">Clear</button>
+      <button id="applyFilters" class="btn btn-primary" type="button">Show results</button>
+    </div>
+  </section>
+
+  <!-- Detail view -->
+  <section id="detailView" class="detail-view" hidden aria-label="Fixture detail">
+    <div class="detail-header">
+      <button id="detailClose" class="icon-btn" type="button" aria-label="Back to results">← Back</button>
+    </div>
+    <div class="detail-body">
+      <div id="detailGallery" class="gallery"></div>
+      <div class="gallery-dots" id="galleryDots"></div>
+      <div class="detail-info">
+        <p class="detail-brand" id="detailBrand"></p>
+        <h2 class="detail-model" id="detailModel"></h2>
+        <div class="detail-specs">
+          <div class="spec">
+            <span class="spec-label">Type</span>
+            <span class="spec-value" id="detailType"></span>
+          </div>
+          <div class="spec">
+            <span class="spec-label">Wattage</span>
+            <span class="spec-value" id="detailWattage"></span>
+          </div>
+          <div class="spec">
+            <span class="spec-label">Power</span>
+            <span class="spec-value" id="detailPower"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <template id="cardTemplate">
+    <button class="card" type="button" role="listitem">
+      <div class="card-photo">
+        <img loading="lazy" alt="" />
+        <span class="card-photo-fallback">No photo</span>
+      </div>
+      <div class="card-body">
+        <p class="card-brand"></p>
+        <p class="card-model"></p>
+        <div class="card-meta">
+          <span class="card-wattage"></span>
+          <span class="card-badge"></span>
+        </div>
+      </div>
+    </button>
+  </template>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

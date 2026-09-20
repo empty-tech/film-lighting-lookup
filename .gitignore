@@ -1,0 +1,4 @@
+node_modules/
+pwa/photos/
+pwa/data.json
+*.log
