@@ -102,8 +102,18 @@
       <button id="detailClose" class="icon-btn" type="button" aria-label="Back to results">← Back</button>
     </div>
     <div class="detail-body">
-      <div id="detailGallery" class="gallery"></div>
+      <div class="gallery-wrap">
+        <div id="detailGallery" class="gallery"></div>
+        <span id="galleryTag" class="gallery-tag" hidden></span>
+      </div>
       <div class="gallery-dots" id="galleryDots"></div>
+      <div class="photo-actions" id="photoActions">
+        <button id="photoAdd" class="btn btn-primary" type="button">＋ Add photos</button>
+        <button id="photoSetDisplay" class="btn btn-secondary" type="button">Set as display photo</button>
+        <button id="photoDelete" class="btn btn-secondary btn-danger" type="button" hidden>Delete</button>
+      </div>
+      <p class="photo-note" id="photoNote" hidden></p>
+      <input id="photoInput" type="file" accept="image/*" multiple hidden />
       <div class="detail-info">
         <p class="detail-brand" id="detailBrand"></p>
         <h2 class="detail-model" id="detailModel"></h2>

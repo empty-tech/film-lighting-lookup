@@ -499,6 +499,47 @@ main {
   background: var(--accent);
 }
 
+.gallery-tag {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(20, 22, 26, 0.8);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.gallery-wrap {
+  position: relative;
+}
+
+.photo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 16px 8px;
+}
+
+.photo-actions .btn {
+  flex: 1 1 140px;
+}
+
+.photo-actions .btn:disabled {
+  opacity: 0.55;
+}
+
+.btn-danger {
+  color: var(--danger);
+}
+
+.photo-note {
+  margin: 0;
+  padding: 0 20px 8px;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+}
+
 .detail-info {
   padding: 8px 20px 40px;
 }

@@ -1,6 +1,8 @@
 // Fixture Lookup — client-side search over a pre-built data.json.
 // No framework, no build step: this file is served as-is.
 
+import { loadAll, addPhoto, deletePhoto, setDisplay, prepareImage, requestPersistence } from './user-photos.js';
+
 const state = {
   data: null,
   search: '',
@@ -15,6 +17,52 @@ const state = {
 
 let currentDetailId = null;
 let currentGalleryPhotos = [];
+let currentPhotoIndex = 0;
+
+// --- on-device photos (see user-photos.js) ---
+// userPhotos: lightId -> [{ id, blob, url? }]; displayRefs: lightId -> ref
+const userPhotos = new Map();
+const displayRefs = new Map();
+let userStorageOk = true;
+
+async function loadUserPhotos() {
+  try {
+    const { photos, displays } = await loadAll();
+    for (const p of photos.sort((a, b) => a.createdAt - b.createdAt)) {
+      if (!userPhotos.has(p.lightId)) userPhotos.set(p.lightId, []);
+      userPhotos.get(p.lightId).push({ id: p.id, blob: p.blob });
+    }
+    for (const d of displays) displayRefs.set(d.lightId, d.ref);
+  } catch (err) {
+    // IndexedDB blocked (private window, etc.): bundled photos still work.
+    console.error('User photo storage unavailable', err);
+    userStorageOk = false;
+  }
+}
+
+function userPhotoUrl(p) {
+  if (!p.url) p.url = URL.createObjectURL(p.blob);
+  return p.url;
+}
+
+// All photos for a fixture, display photo first. Each entry:
+// { ref, src, caption, isUser, id? }
+function galleryFor(light) {
+  const all = [
+    ...(light.photos || []).map((p) => ({ ref: p.path, src: p.path, caption: p.caption, isUser: false })),
+    ...(userPhotos.get(light.id) || []).map((p) => ({
+      ref: `user:${p.id}`,
+      src: userPhotoUrl(p),
+      caption: 'Yours',
+      isUser: true,
+      id: p.id,
+    })),
+  ];
+  const wanted = displayRefs.get(light.id) || light.primaryPhoto;
+  const i = all.findIndex((p) => p.ref === wanted);
+  if (i > 0) all.unshift(...all.splice(i, 1));
+  return all;
+}
 
 // --- wattage shorthand parsing (mirrors scripts/lib/wattage.js) ---
 function parseWattage(raw) {
@@ -114,8 +162,9 @@ function renderGrid() {
     const node = cardTemplate.content.cloneNode(true);
     const card = node.querySelector('.card');
     const img = node.querySelector('.card-photo img');
-    if (light.primaryPhoto) {
-      img.src = light.primaryPhoto;
+    const display = galleryFor(light)[0];
+    if (display) {
+      img.src = display.src;
       img.alt = `${light.brand} ${light.model}`;
     } else {
       img.removeAttribute('src');
@@ -154,7 +203,6 @@ function openDetail(lightId) {
   if (!light) return;
 
   currentDetailId = lightId;
-  currentGalleryPhotos = light.photos || [];
 
   document.getElementById('detailBrand').textContent = light.brand;
   document.getElementById('detailModel').textContent = light.model;
@@ -170,6 +218,17 @@ function openDetail(lightId) {
   document.getElementById('detailPower').textContent =
     light.powerUnit === 'none' ? 'None — no ballast needed' : light.powerUnit === 'ballast' ? 'Ballast' : 'External driver';
 
+  renderDetailGallery(light);
+
+  detailView.hidden = false;
+  history.pushState({ detail: lightId }, '', `#fixture-${lightId}`);
+}
+
+// Rebuilds the gallery from bundled + on-device photos. focusRef scrolls to
+// that photo (used after adding); otherwise we land on the display photo.
+function renderDetailGallery(light, focusRef = null) {
+  currentGalleryPhotos = galleryFor(light);
+
   detailGallery.innerHTML = '';
   galleryDots.innerHTML = '';
   if (currentGalleryPhotos.length === 0) {
@@ -180,22 +239,124 @@ function openDetail(lightId) {
   } else {
     currentGalleryPhotos.forEach((photo, i) => {
       const img = document.createElement('img');
-      img.src = photo.path;
+      img.src = photo.src;
       img.alt = photo.caption || `${light.brand} ${light.model}`;
       img.loading = i === 0 ? 'eager' : 'lazy';
       detailGallery.appendChild(img);
 
       if (currentGalleryPhotos.length > 1) {
         const dot = document.createElement('span');
-        if (i === 0) dot.classList.add('active');
         galleryDots.appendChild(dot);
       }
     });
   }
 
-  detailView.hidden = false;
-  history.pushState({ detail: lightId }, '', `#fixture-${lightId}`);
+  const focusIndex = Math.max(0, currentGalleryPhotos.findIndex((p) => p.ref === focusRef));
+  currentPhotoIndex = focusIndex;
+  detailGallery.scrollLeft = focusIndex * detailGallery.clientWidth;
+  updatePhotoUi();
 }
+
+function updatePhotoUi() {
+  [...galleryDots.children].forEach((dot, i) => dot.classList.toggle('active', i === currentPhotoIndex));
+
+  const photo = currentGalleryPhotos[currentPhotoIndex];
+  const isDisplay = currentPhotoIndex === 0;
+
+  const tag = document.getElementById('galleryTag');
+  const tagText = [isDisplay && 'Display photo', photo?.isUser && 'Yours'].filter(Boolean).join(' · ');
+  tag.textContent = tagText;
+  tag.hidden = !photo || !tagText;
+
+  document.getElementById('photoAdd').hidden = !userStorageOk;
+  const setBtn = document.getElementById('photoSetDisplay');
+  // Nothing to choose between with 0–1 photos.
+  setBtn.hidden = !userStorageOk || currentGalleryPhotos.length < 2;
+  setBtn.disabled = isDisplay;
+  setBtn.textContent = isDisplay ? 'Display photo ✓' : 'Set as display photo';
+  document.getElementById('photoDelete').hidden = !userStorageOk || !photo?.isUser;
+
+  const note = document.getElementById('photoNote');
+  note.hidden = userStorageOk;
+  note.textContent = userStorageOk ? '' : "Photo saving isn't available in this browser mode.";
+}
+
+function currentLight() {
+  return state.data.lights.find((l) => l.id === currentDetailId);
+}
+
+const photoInput = document.getElementById('photoInput');
+document.getElementById('photoAdd').addEventListener('click', () => photoInput.click());
+
+photoInput.addEventListener('change', async () => {
+  const files = [...photoInput.files];
+  photoInput.value = ''; // allow re-picking the same file
+  const light = currentLight();
+  if (!light || files.length === 0) return;
+
+  const addBtn = document.getElementById('photoAdd');
+  addBtn.disabled = true;
+  addBtn.textContent = 'Saving…';
+  let firstRef = null;
+  let failed = 0;
+  for (const file of files) {
+    try {
+      const blob = await prepareImage(file);
+      const id = await addPhoto(light.id, blob);
+      if (!userPhotos.has(light.id)) userPhotos.set(light.id, []);
+      userPhotos.get(light.id).push({ id, blob });
+      firstRef ??= `user:${id}`;
+    } catch (err) {
+      console.error('Could not save photo', err);
+      failed++;
+    }
+  }
+  addBtn.disabled = false;
+  addBtn.textContent = '＋ Add photos';
+
+  if (firstRef) {
+    requestPersistence();
+    renderDetailGallery(light, firstRef);
+    renderGrid(); // fixtures with no display photo yet pick up the new one
+  }
+  if (failed) alert(`${failed} photo${failed === 1 ? '' : 's'} couldn't be saved.`);
+});
+
+document.getElementById('photoSetDisplay').addEventListener('click', async () => {
+  const light = currentLight();
+  const photo = currentGalleryPhotos[currentPhotoIndex];
+  if (!light || !photo) return;
+  try {
+    await setDisplay(light.id, photo.ref);
+  } catch (err) {
+    console.error('Could not set display photo', err);
+    alert("Couldn't save that choice.");
+    return;
+  }
+  displayRefs.set(light.id, photo.ref);
+  renderDetailGallery(light); // display photo moves to the front
+  renderGrid();
+});
+
+document.getElementById('photoDelete').addEventListener('click', async () => {
+  const light = currentLight();
+  const photo = currentGalleryPhotos[currentPhotoIndex];
+  if (!light || !photo?.isUser || !confirm('Delete this photo?')) return;
+  try {
+    await deletePhoto(photo.id, light.id);
+  } catch (err) {
+    console.error('Could not delete photo', err);
+    alert("Couldn't delete that photo.");
+    return;
+  }
+  const list = userPhotos.get(light.id) || [];
+  const entry = list.find((p) => p.id === photo.id);
+  if (entry?.url) URL.revokeObjectURL(entry.url);
+  userPhotos.set(light.id, list.filter((p) => p.id !== photo.id));
+  if (displayRefs.get(light.id) === photo.ref) displayRefs.delete(light.id);
+  renderDetailGallery(light);
+  renderGrid();
+});
 
 function closeDetail({ fromPopstate = false } = {}) {
   if (detailView.hidden) return;
@@ -208,8 +369,8 @@ function closeDetail({ fromPopstate = false } = {}) {
 
 detailGallery.addEventListener('scroll', () => {
   if (currentGalleryPhotos.length < 2) return;
-  const idx = Math.round(detailGallery.scrollLeft / detailGallery.clientWidth);
-  [...galleryDots.children].forEach((dot, i) => dot.classList.toggle('active', i === idx));
+  currentPhotoIndex = Math.round(detailGallery.scrollLeft / detailGallery.clientWidth);
+  updatePhotoUi();
 });
 
 document.getElementById('detailClose').addEventListener('click', () => closeDetail());
@@ -361,6 +522,8 @@ async function init() {
     emptyState.textContent = err.message;
     return;
   }
+
+  await loadUserPhotos();
 
   renderOptionChips(document.getElementById('typeOptions'), state.data.types, state.types, 'type', renderGrid);
   renderOptionChips(document.getElementById('brandOptions'), state.data.brands, state.brands, 'brand', renderGrid);
