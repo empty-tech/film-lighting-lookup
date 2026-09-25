@@ -15,7 +15,7 @@
     "serve": "node scripts/serve.js"
   },
   "dependencies": {
-    "better-sqlite3": "^11.9.1",
+    "better-sqlite3": "^13.0.3",
     "sharp": "^0.35.4"
   }
 }
