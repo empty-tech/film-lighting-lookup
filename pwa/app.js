@@ -2,6 +2,8 @@
 // No framework, no build step: this file is served as-is.
 
 import { loadAll, addPhoto, deletePhoto, setDisplay, prepareImage, requestPersistence } from './user-photos.js';
+import { hasEmulator, getEmulator } from './emulator/fixtures/index.js';
+import { mountEmulator } from './emulator/mount.js';
 
 const state = {
   data: null,
@@ -219,6 +221,7 @@ function openDetail(lightId) {
     light.powerUnit === 'none' ? 'None — no ballast needed' : light.powerUnit === 'ballast' ? 'Ballast' : 'External driver';
 
   renderDetailGallery(light);
+  document.getElementById('detailEmulate').hidden = !hasEmulator(light);
 
   detailView.hidden = false;
   history.pushState({ detail: lightId }, '', `#fixture-${lightId}`);
@@ -375,7 +378,51 @@ detailGallery.addEventListener('scroll', () => {
 
 document.getElementById('detailClose').addEventListener('click', () => closeDetail());
 
+// --- control-panel emulator (see emulator/) ---
+const emulatorView = document.getElementById('emulatorView');
+let currentEmulator = null;
+// Set when we call history.back() ourselves, so the resulting popstate
+// doesn't also close the detail view underneath.
+let ignoreNextPopstate = false;
+
+function openEmulator(light) {
+  const def = getEmulator(light);
+  if (!def) return;
+  document.getElementById('emulatorBrand').textContent = light.brand;
+  document.getElementById('emulatorModel').textContent = light.model;
+  currentEmulator = mountEmulator(document.getElementById('emuMount'), def);
+  emulatorView.hidden = false;
+  emulatorView.scrollTop = 0;
+  emulatorView.focus({ preventScroll: true }); // keys go to the light, not the Emulate button
+  history.pushState({ emulate: light.id }, '', `#emulate-${light.id}`);
+}
+
+function closeEmulator({ fromPopstate = false } = {}) {
+  if (emulatorView.hidden) return;
+  emulatorView.hidden = true;
+  currentEmulator?.destroy();
+  currentEmulator = null;
+  if (!fromPopstate && history.state && history.state.emulate) {
+    ignoreNextPopstate = true;
+    history.back();
+  }
+}
+
+document.getElementById('detailEmulate').addEventListener('click', () => {
+  const light = state.data.lights.find((l) => l.id === currentDetailId);
+  if (light) openEmulator(light);
+});
+document.getElementById('emulatorClose').addEventListener('click', () => closeEmulator());
+
 window.addEventListener('popstate', (e) => {
+  if (ignoreNextPopstate) {
+    ignoreNextPopstate = false;
+    return;
+  }
+  if (!emulatorView.hidden) {
+    closeEmulator({ fromPopstate: true });
+    return;
+  }
   if (!detailView.hidden) {
     closeDetail({ fromPopstate: true });
     return;
@@ -406,7 +453,8 @@ document.getElementById('applyFilters').addEventListener('click', closeFilterShe
 
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
-  if (!detailView.hidden) closeDetail();
+  if (!emulatorView.hidden) closeEmulator();
+  else if (!detailView.hidden) closeDetail();
   else if (!filterSheet.hidden) closeFilterSheet();
 });
 

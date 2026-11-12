@@ -6,7 +6,7 @@
 // install: data.json is always re-fetched from network when possible, photos
 // are added as needed, and entries for photos no longer referenced by the
 // current data.json are pruned so storage doesn't grow unbounded.
-const SHELL_VERSION = 'v2';
+const SHELL_VERSION = 'v3';
 const SHELL_CACHE = `fixtures-shell-${SHELL_VERSION}`;
 const DATA_CACHE = 'fixtures-data';
 
@@ -16,6 +16,15 @@ const SHELL_FILES = [
   'styles.css',
   'app.js',
   'user-photos.js',
+  'emulator/emulator.css',
+  'emulator/mount.js',
+  'emulator/engine/emulator.js',
+  'emulator/engine/nodes.js',
+  'emulator/engine/panel.js',
+  'emulator/engine/screen.js',
+  'emulator/fixtures/index.js',
+  'emulator/fixtures/astera-fp.js',
+  'emulator/fixtures/gels.js',
   'manifest.json',
   'icons/icon-192.png',
   'icons/icon-512.png',

@@ -1,0 +1,327 @@
+/* Control-panel emulator. Everything is scoped under .emu. */
+
+.emu {
+  --emu-plate: #d6d7d9;
+  --emu-plate-hi: #eceded;
+  --emu-plate-edge: #a9abaf;
+  --emu-key: #f4f4f2;
+  --emu-key-ring: #26272a;
+  --emu-key-text: #1b1c1e;
+  --emu-oled-bg: #050608;
+  --emu-oled-text: #e9f2ff;
+  --emu-oled-glow: rgba(150, 190, 255, 0.45);
+  --emu-mark: #6d6f75;
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.emu-plate {
+  display: grid;
+  grid-template-columns: auto minmax(0, 2.6fr) repeat(4, auto) minmax(0, 0.6fr) auto auto;
+  grid-template-areas:
+    'ir    bezel mark  mark  mark  mark  .     palette brightness'
+    'power bezel menu  minus plus  enter .     .       .';
+  align-items: center;
+  gap: 2.2cqw 2cqw;
+  padding: 4cqw 3.4cqw;
+  border-radius: 10px;
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0 1px, rgba(0, 0, 0, 0.025) 1px 3px),
+    linear-gradient(180deg, var(--emu-plate-hi), var(--emu-plate) 55%, #c9cacd);
+  border: 1px solid var(--emu-plate-edge);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), inset 0 -2px 4px rgba(0, 0, 0, 0.12), 0 10px 30px rgba(0, 0, 0, 0.45);
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+/* Infrared receiver window */
+.emu-ir {
+  grid-area: ir;
+  justify-self: center;
+  align-self: end;
+  width: 3.2cqw;
+  height: 4.2cqw;
+  border-radius: 999px 999px 4px 4px;
+  background: radial-gradient(circle at 40% 30%, #3a3c42, #0d0e10 70%);
+}
+
+.emu-bezel {
+  grid-area: bezel;
+  padding: 0.7cqw;
+  border-radius: 4px;
+  background: #1a1b1e;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.8), 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.emu-mark {
+  grid-area: mark;
+  justify-self: center;
+  align-self: end;
+  font: 700 clamp(11px, 2.2cqw, 18px) / 1 system-ui, sans-serif;
+  letter-spacing: 0.22em;
+  color: var(--emu-mark);
+}
+
+/* --- OLED --- */
+.emu-oled {
+  container-type: inline-size;
+  aspect-ratio: 2.5;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 3% 4%;
+  box-sizing: border-box;
+  overflow: hidden;
+  background:
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.22) 0 1px, transparent 1px 3px),
+    var(--emu-oled-bg);
+  color: var(--emu-oled-text);
+  font-family: 'DejaVu Sans Mono', Menlo, Consolas, 'Liberation Mono', ui-monospace, monospace;
+  text-shadow: 0 0 0.25em var(--emu-oled-glow);
+  white-space: pre;
+}
+
+.emu-oled.is-off {
+  background: var(--emu-oled-bg);
+}
+
+.emu-lines {
+  display: flex;
+  flex-direction: column;
+}
+
+.emu-oled--big .emu-line {
+  font-size: 9.2cqw;
+  line-height: 1.12;
+  font-weight: 700;
+}
+
+.emu-oled--small .emu-line {
+  font-size: 8cqw;
+  line-height: 1.12;
+}
+
+.emu-caret {
+  background: var(--emu-oled-text);
+  color: var(--emu-oled-bg);
+  text-shadow: none;
+}
+
+.emu-icons {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 6.4cqw;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 1.5cqw;
+}
+
+.emu-icon-tag,
+.emu-icon-batt {
+  display: inline-flex;
+  align-items: center;
+  gap: 1.2cqw;
+}
+
+.emu-antenna {
+  width: 4.2cqw;
+  height: 4.2cqw;
+  border: 0.9cqw solid currentColor;
+  border-radius: 50% 50% 0 0;
+  border-bottom: 0;
+  box-sizing: border-box;
+}
+
+.emu-batt {
+  position: relative;
+  width: 3.4cqw;
+  height: 6.4cqw;
+  border: 0.6cqw solid currentColor;
+  border-radius: 0.6cqw;
+  box-sizing: border-box;
+  background: linear-gradient(0deg, currentColor var(--level), transparent var(--level));
+}
+
+.emu-batt::before {
+  content: '';
+  position: absolute;
+  top: -1.4cqw;
+  left: 25%;
+  width: 50%;
+  height: 0.8cqw;
+  background: currentColor;
+}
+
+.emu-plug {
+  width: 3cqw;
+  height: 4cqw;
+  border-radius: 0 0 1cqw 1cqw;
+  background: currentColor;
+}
+
+/* --- buttons --- */
+.emu-btn {
+  --size: clamp(40px, 7.4cqw, 66px);
+  width: var(--size);
+  height: var(--size);
+  padding: 0;
+  border-radius: 50%;
+  border: max(2px, 0.45cqw) solid var(--emu-key-ring);
+  background: radial-gradient(circle at 50% 35%, #ffffff, var(--emu-key) 60%, #dcdcd8);
+  color: var(--emu-key-text);
+  font: 800 calc(var(--size) * 0.2) / 1 system-ui, sans-serif;
+  letter-spacing: -0.02em;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.35), 0 4px 8px rgba(0, 0, 0, 0.18);
+  cursor: pointer;
+  position: relative;
+  display: grid;
+  place-items: center;
+  transition: transform 60ms ease, box-shadow 60ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.emu-btn svg {
+  width: 58%;
+  height: 58%;
+}
+
+.emu-btn--minus,
+.emu-btn--plus {
+  font-size: calc(var(--size) * 0.5);
+  font-weight: 600;
+}
+
+.emu-btn--power { grid-area: power; }
+.emu-btn--menu { grid-area: menu; }
+.emu-btn--minus { grid-area: minus; }
+.emu-btn--plus { grid-area: plus; }
+.emu-btn--enter { grid-area: enter; }
+.emu-btn--palette { grid-area: palette; }
+.emu-btn--brightness { grid-area: brightness; }
+
+.emu-btn--palette,
+.emu-btn--brightness {
+  border-width: max(1.5px, 0.3cqw);
+  background: transparent;
+  box-shadow: none;
+}
+
+.emu-btn.is-pressed {
+  transform: translateY(2px) scale(0.97);
+  box-shadow: 0 0 0 rgba(0, 0, 0, 0.35), inset 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.emu-btn:focus-visible {
+  outline: 3px solid #ffb340;
+  outline-offset: 3px;
+}
+
+/* Progress ring while a hold-to-activate button is held */
+.emu-btn.is-holding::after {
+  content: '';
+  position: absolute;
+  inset: -7px;
+  border-radius: 50%;
+  background: conic-gradient(#ffb340 calc(var(--p) * 1turn), transparent 0);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
+  animation: emu-hold var(--hold-ms, 3000ms) linear forwards;
+}
+
+@property --p {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 0;
+}
+
+@keyframes emu-hold {
+  from { --p: 0; }
+  to { --p: 1; }
+}
+
+/* --- text under the panel --- */
+.emu-hint,
+.emu-keys {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-dim, #9aa0ab);
+}
+
+.emu-hint {
+  color: var(--text, #f2f3f5);
+}
+
+.emu-help {
+  border: 1px solid var(--border, #363b45);
+  border-radius: 12px;
+  padding: 10px 14px;
+  background: var(--surface, #1d2026);
+  font-size: 0.9rem;
+}
+
+.emu-help summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.emu-help p {
+  margin: 8px 0 0;
+}
+
+.emu-help-path {
+  font-weight: 700;
+}
+
+.emu-help-src {
+  color: var(--text-dim, #9aa0ab);
+}
+
+.emu-help-guess {
+  color: var(--accent, #ffb340);
+}
+
+/* Phone width: screen on top, keys in a row underneath. */
+@container (max-width: 560px) {
+  .emu-plate {
+    grid-template-columns: repeat(5, 1fr);
+    grid-template-areas:
+      'bezel bezel bezel bezel bezel'
+      'power menu  minus plus  enter'
+      'mark  mark  mark  palette brightness';
+    gap: 14px 6px;
+    padding: 16px 12px;
+    justify-items: center;
+  }
+
+  .emu-bezel {
+    justify-self: stretch;
+    padding: 4px;
+  }
+
+  .emu-ir {
+    display: none;
+  }
+
+  .emu-mark {
+    align-self: center;
+    font-size: 14px;
+  }
+
+  .emu-btn {
+    --size: min(16cqw, 64px);
+  }
+
+  .emu-keys {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .emu-btn {
+    transition: none;
+  }
+}

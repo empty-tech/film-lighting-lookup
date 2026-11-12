@@ -12,7 +12,8 @@
     "photos:resize": "node scripts/resize-photos.js",
     "build:data": "node scripts/export-json.js",
     "build": "npm run db:check-photos && npm run photos:resize && npm run build:data",
-    "serve": "node scripts/serve.js"
+    "serve": "node scripts/serve.js",
+    "test": "node --test 'test/**/*.test.js'"
   },
   "dependencies": {
     "better-sqlite3": "^13.0.3",

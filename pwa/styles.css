@@ -591,3 +591,36 @@ main {
 [hidden] {
   display: none !important;
 }
+
+/* Emulate button + emulator view */
+.emulate-btn {
+  display: block;
+  width: 100%;
+  margin-top: 24px;
+}
+
+.emulate-btn[hidden] {
+  display: none;
+}
+
+.emulator-view {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: var(--bg);
+  overflow-y: auto;
+}
+
+.emulator-body {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 8px 16px max(env(safe-area-inset-bottom), 32px);
+}
+
+.emulator-body .detail-model {
+  margin-bottom: 20px;
+}
+
+.emulator-view:focus {
+  outline: none;
+}

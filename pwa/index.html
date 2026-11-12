@@ -14,6 +14,7 @@
   <link rel="icon" href="icons/icon-192.png" />
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
   <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="emulator/emulator.css" />
 </head>
 <body>
   <div id="offlineBadge" class="offline-badge" hidden>Offline</div>
@@ -132,7 +133,20 @@
             <span class="spec-value" id="detailPower"></span>
           </div>
         </div>
+        <button id="detailEmulate" class="btn btn-primary emulate-btn" type="button" hidden>Emulate control panel</button>
       </div>
+    </div>
+  </section>
+
+  <section id="emulatorView" class="emulator-view" hidden tabindex="-1" aria-label="Control panel emulator">
+    <div class="detail-header">
+      <button id="emulatorClose" class="icon-btn" type="button" aria-label="Back to fixture">← Back</button>
+    </div>
+    <div class="emulator-body">
+      <p class="detail-brand" id="emulatorBrand"></p>
+      <h2 class="detail-model" id="emulatorModel"></h2>
+      <div id="emuPreview" class="emu-preview" hidden></div>
+      <div id="emuMount"></div>
     </div>
   </section>
 
