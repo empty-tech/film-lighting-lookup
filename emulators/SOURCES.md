@@ -77,3 +77,22 @@ When a real light disagrees:
 1. Fix `astera-fp.js`.
 2. Add a button-sequence case to `test/emulator/astera.test.js`.
 3. Remove the matching `guess` text.
+
+## ARRI Orbiter (not built yet)
+
+**Photo:** `arri/orbiter/back.jpg`. This is ARRI's product shot of the back of the light, at 2500×1875. It shows the control panel's layout:
+- a colour LCD;
+- a large blue knob at the top right;
+- Mode, Menu and User buttons down the right side;
+- five soft keys under the screen.
+
+The screen in the shot is the CCT mode page:
+- intensity bar at 50.0%;
+- a CCT arc reading 2000K, and a G/M bar reading +0.40;
+- "Status OK" at the top right;
+- soft-key labels Intensity, CCT, G/M and ECC.
+
+The panel is too small in this shot to read most of the screen. Still needed:
+- the Orbiter user manual, matching the firmware on your units;
+- a close, straight-on photo of the control panel;
+- photos of real screens (menu, mode list).
