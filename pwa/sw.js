@@ -6,7 +6,7 @@
 // install: data.json is always re-fetched from network when possible, photos
 // are added as needed, and entries for photos no longer referenced by the
 // current data.json are pruned so storage doesn't grow unbounded.
-const SHELL_VERSION = 'v3';
+const SHELL_VERSION = 'v4';
 const SHELL_CACHE = `fixtures-shell-${SHELL_VERSION}`;
 const DATA_CACHE = 'fixtures-data';
 

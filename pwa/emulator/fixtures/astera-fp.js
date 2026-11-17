@@ -1,15 +1,20 @@
 // Astera FP-series tubes (Titan, Helios, Hyperion): control panel + menus.
 //
-// Source: "FP1 Titan Tube Technical Reference Manual V1" (2020-08-26), kept
-// at emulators/astera/titan-tube/manual-v1-2020-08-26.pdf. Section
-// numbers in `src` refer to it. Anything not in the manual is marked `guess`
-// with what was assumed. Helios and Hyperion reuse the Titan tree; see
-// emulators/SOURCES.md.
+// Sources, all under emulators/astera/titan-tube/:
+//   manual-v1-2020-08-26.pdf      "FP1 Titan Tube Technical Reference Manual V1";
+//                                 section numbers in `src` refer to it.
+//   quickguide-v2-2022-08-11.pdf  printed quick guide, V2.
+//   screens/*.jpg                 photos of a real Titan Tube's screen.
+// Where the photos disagree with the manual, the photos win (newer firmware).
+// Anything in none of them is marked `guess` with what was assumed. Helios and
+// Hyperion reuse the Titan tree; see emulators/SOURCES.md.
 
 import { menu, choice, number, readout, digitsEditor, confirm, action, editor, screen, pad } from '../engine/nodes.js';
 import { GEL_TYPES, gelsFor } from './gels.js';
 
 const M = (s) => `Titan manual ${s}`;
+const QG = (s) => `Titan quick guide V2 ${s}`;
+const PH = (file) => `Titan photo (screens/${file})`;
 
 // §7.13.1 Predefined Colors (BLACK is in the table but not the §9 diagram).
 const PRESETS = [
@@ -71,9 +76,10 @@ function defaults() {
     },
     // What the light is showing after the colour-palette button was used.
     colorSource: 'standalone', // standalone | hsi | preset | gel
-    hsi: { cct: 5600, green: 0, hue: 0, sat: 0 },
+    hsi: { cct: 5500, green: 0, hue: 0, sat: 0 },
     quickPreset: 'RED',
-    gel: { type: 'Lee Daylight', idx: 0 },
+    gel: { type: 'LEE Tungsten', idx: 0 },
+    turned: 'OFF', // TURN BY 180
     brightness: 100,
     ax1Compat: 'DISABLED',
     // Not reset by RESET SETTINGS (§7.22):
@@ -185,6 +191,18 @@ export function asteraFp(modelKey) {
     guess: 'The manual says "go to UNPAIR CRMX and press enter"; the confirmation text "DONE" is invented.',
   });
 
+  // Both are in the main menu on the photographed Titan but not in the 2020
+  // manual; what they do inside is not documented.
+  const turnBy180 = listChoice('TURN BY 180', 'TURN BY 180', ['OFF', 'ON'], 'turned', PH('menu-05-turn-by-180.jpg'),
+    'The menu entry is real. Assumed to be an OFF/ON setting that flips the tube end-for-end (pixel order); the screens inside are invented.');
+
+  const unbondBluetooth = action({
+    label: 'UNBOND BLUETOOTH',
+    run: (ctx) => ctx.flash(['UNBOND BLUETOOTH', 'DONE']),
+    src: PH('menu-06-unbond-bluetooth.jpg'),
+    guess: 'The menu entry is real. That ENTER unbonds straight away and shows "DONE" is invented.',
+  });
+
   const runtime = number({
     label: 'RUNTIME', min: 1, max: 20, format: (v) => `${v}h`,
     get: (s) => s.runtime, set: (s, v) => { s.runtime = v; },
@@ -242,20 +260,22 @@ export function asteraFp(modelKey) {
   const reset = confirm({
     label: 'RESET SETTINGS',
     onYes: (ctx) => {
+      // Quick guide §7: "RESET to unlink CRMX. Sets Input Select to AUTO and
+      // runtime to 5h." (The 2020 manual said CRMX pairing survives a reset.)
       ctx.update((s) => {
-        const keep = { power: s.power, radioPin: s.radioPin, crmxPaired: s.crmxPaired, battery: s.battery, onAC: s.onAC, hours: s.hours };
+        const keep = { power: s.power, radioPin: s.radioPin, battery: s.battery, onAC: s.onAC, hours: s.hours };
         Object.assign(s, defaults(), keep);
       });
       ctx.home();
     },
-    src: M('§7.22, §9'),
+    src: `${M('§7.22, §9')}, ${QG('§7')}`,
     guess: 'Which of NO/YES is selected first, and that +/- switch between them, is assumed.',
   });
 
   const mainMenu = menu({
     label: 'Main menu', title: 'Main menu:', exitAtEnds: true, icons: true,
-    items: [inputSelect, staticColor, dmxAddress, dmxSettings, unpair, runtime, standalone, acFail, info, reset],
-    src: M('§7.11, §9'),
+    items: [inputSelect, staticColor, dmxAddress, dmxSettings, turnBy180, unbondBluetooth, unpair, runtime, standalone, acFail, info, reset],
+    src: `${M('§7.11, §9')}; order checked against ${PH('menu-*.jpg')}`,
   });
 
   // §7.10 Status screen.
@@ -273,9 +293,9 @@ export function asteraFp(modelKey) {
   };
   const home = {
     kind: 'home', label: 'Status screen', icons: true,
-    src: M('§7.10'),
-    guess: 'No transmitter or app is simulated, so DMX inputs show NO LINK. "CRMX: NO LINK" and "XLR-DMX: NO LINK" are assumed; the manual only shows linked screens.',
-    render: (ctx) => screen([statusLine1(ctx.state), `SET:${pad(ctx.state.standalone.setAddress)} DMX:${pad(ctx.state.dmxAddress)}`], { icons: true }),
+    src: `${M('§7.10')}, ${PH('status-crmx-no-link.jpg')}`,
+    guess: 'No transmitter or app is simulated, so DMX inputs show NO LINK. "CRMX: NO LINK" is from a photo; "XLR-DMX: NO LINK", "ART3: NO LINK" and "INPUT: DETECTING" are assumed. The photo shows no second line; the manual\'s "SET:001 DMX:001" line may only appear with a signal.',
+    render: (ctx) => screen([statusLine1(ctx.state), ''], { icons: true }),
     press(btn, ctx) {
       // §7.8 / §9: MENU or + enters the main menu at its first entry,
       // − at its last (RESET SETTINGS), ENTER jumps to DMX ADDRESS.
@@ -300,8 +320,8 @@ export function asteraFp(modelKey) {
       { text: (s) => `Hue : ${s.hsi.hue}`, field: { min: 0, max: 360, step: 1, wrap: true, get: (s) => s.hsi.hue, set: (s, v) => { s.hsi.hue = v; } } },
       { text: (s) => `Sat : ${s.hsi.sat}%`, field: { min: 0, max: 100, step: 1, get: (s) => s.hsi.sat, set: (s, v) => { s.hsi.sat = v; } } },
     ],
-    src: M('§7.23'),
-    guess: 'CCT steps of 50 K, a green range of ±1.00 in 0.01 steps and hue wrapping at 360 are assumed. A fourth palette press is assumed to loop back here.',
+    src: `${M('§7.23')}, ${PH('palette-1-hsi-cct.jpg')}`,
+    guess: 'Layout, inverse selection bar and the 5500 K default are from photos. CCT steps of 50 K, a green range of ±1.00 in 0.01 steps and hue wrapping at 360 are assumed. A fourth palette press is assumed to loop back here.',
   });
   const presetPage = editor({
     label: 'Palette: static color',
@@ -311,19 +331,18 @@ export function asteraFp(modelKey) {
       { text: () => 'Static Color:' },
       { text: (s) => titleCase(s.quickPreset), field: { options: () => PRESETS, get: (s) => s.quickPreset, set: (s, v) => { s.quickPreset = v; } } },
     ],
-    src: M('§7.23'),
+    src: `${M('§7.23')}, ${PH('palette-2-static-color.jpg')}`,
   });
   const gelPage = editor({
     label: 'Palette: color gel',
     onShow: (ctx) => ctx.update((s) => toStandalone(s, 'gel')),
     lines: [
-      { text: () => 'Color Gel:' },
       { text: (s) => s.gel.type, field: { options: () => GEL_TYPES, get: (s) => s.gel.type, set: (s, v) => { s.gel.type = v; s.gel.idx = Math.min(s.gel.idx, gelsFor(v).length - 1); } } },
-      { text: (s) => gelsFor(s.gel.type)[s.gel.idx][0], field: { options: (s) => gelsFor(s.gel.type).map((_, i) => i), get: (s) => s.gel.idx, set: (s, v) => { s.gel.idx = v; } } },
+      { text: (s) => `#${gelsFor(s.gel.type)[s.gel.idx][0]}`, field: { options: (s) => gelsFor(s.gel.type).map((_, i) => i), get: (s) => s.gel.idx, set: (s, v) => { s.gel.idx = v; } } },
       { text: (s) => gelsFor(s.gel.type)[s.gel.idx][1] },
     ],
-    src: M('§7.23'),
-    guess: 'The gel list is incomplete (the manual refers to a list on page 55 that isn\'t included).',
+    src: `${M('§7.23')}, ${PH('palette-3-gel-lee-tungsten.jpg')}`,
+    guess: 'Layout ("LEE Tungsten" / "#002" / "Rose Pink") is from a photo. The gel list is incomplete (the manual refers to a list on page 55 that isn\'t included), and the other gel-type names are assumed.',
   });
 
   // §7.24 Brightness button.
@@ -333,10 +352,10 @@ export function asteraFp(modelKey) {
     onShow: (ctx) => ctx.update((s) => { s.inputSelect = 'STANDALONE'; s.latched = null; }),
     lines: [
       { text: (s) => `Brightness: ${s.brightness}%`, field: { min: 0, max: 100, step: 1, get: (s) => s.brightness, set: (s, v) => { s.brightness = v; } } },
-      { text: (s) => `Runtime: ${s.runtime}h`, field: { min: 1, max: 20, step: 1, get: (s) => s.runtime, set: (s, v) => { s.runtime = v; } } },
+      { text: (s) => `Runtime : ${s.runtime}h`, field: { min: 1, max: 20, step: 1, get: (s) => s.runtime, set: (s, v) => { s.runtime = v; } } },
     ],
-    src: M('§7.24'),
-    guess: 'The manual\'s screens read "Brigntness"; that is probably a typo in the manual, so the emulator shows "Brightness".',
+    src: `${M('§7.24')}, ${PH('brightness-runtime.jpg')}`,
+    guess: '"Runtime : 3h" is from a photo. The brightness line wasn\'t readable; the manual\'s screens read "Brigntness", probably a typo, so the emulator shows "Brightness:" (without the space so 100% fits in 16 characters).',
   });
 
   // §7.23/7.24: the buttons do nothing unless INPUT SELECT is AUTO or STANDALONE.
@@ -383,10 +402,7 @@ export function asteraFp(modelKey) {
     powerHoldWhileOn(s) {
       s.blueMode = true; // §7.9
     },
-    iconsFor: (s) => ({
-      battery: s.battery,
-      onAC: s.onAC,
-      tag: activeSource(s) === 'APP CONTROL' ? 'APP' : activeSource(s) === 'CRMX wirel. DMX' ? 'CRMX' : '',
-    }),
+    // The photographed Titan shows only "NN%" and a battery at the top right.
+    iconsFor: (s) => ({ battery: s.battery, onAC: s.onAC, tag: '' }),
   };
 }

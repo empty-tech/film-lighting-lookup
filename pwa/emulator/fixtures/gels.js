@@ -45,6 +45,7 @@ export const ROSCO = [
   ['3314', '1/4 Minusgreen'],
 ];
 
-export const GEL_TYPES = ['Lee Daylight', 'Lee Tungsten', 'Rosco Daylight', 'Rosco Tungsten'];
+// "LEE Tungsten" is spelled as on a photographed Titan; the others follow it.
+export const GEL_TYPES = ['LEE Tungsten', 'LEE Daylight', 'Rosco Tungsten', 'Rosco Daylight'];
 
-export const gelsFor = (type) => (type.startsWith('Lee') ? LEE : ROSCO);
+export const gelsFor = (type) => (type.startsWith('LEE') ? LEE : ROSCO);

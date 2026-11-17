@@ -10,12 +10,11 @@ const el = (tag, cls, text) => {
 };
 
 function lineEl(l) {
-  let text = l.text.slice(0, WIDTH);
-  // The manuals mark the line being edited with a run of underscores.
-  if (l.fill) text = text.padEnd(WIDTH, '_');
-  const d = el('div', 'emu-line');
+  const text = l.text.slice(0, WIDTH);
+  // The selected line of an editor is shown in inverse video, full width.
+  const d = el('div', l.selected ? 'emu-line is-selected' : 'emu-line');
   if (l.caret == null) {
-    d.textContent = text || ' ';
+    d.textContent = text || ' ';
   } else {
     const [a, b] = Array.isArray(l.caret) ? l.caret : [l.caret, l.caret + 1];
     d.append(text.slice(0, a), el('span', 'emu-caret', text.slice(a, b)), text.slice(b));
@@ -37,12 +36,33 @@ function iconRow({ battery, onAC, tag }) {
   return row;
 }
 
+// "Main menu#3" -> ['Main menu', 3]
+const splitScroll = (key) => {
+  const i = key.lastIndexOf('#');
+  return [key.slice(0, i), Number(key.slice(i + 1))];
+};
+
+// Which way the text should slide in, or null for no animation. Only when
+// stepping through the same list (the real OLED scrolls between entries).
+function slideDirection(prevKey, nextKey) {
+  if (!prevKey || !nextKey || prevKey === nextKey) return null;
+  const [pList, pIdx] = splitScroll(prevKey);
+  const [nList, nIdx] = splitScroll(nextKey);
+  if (pList !== nList) return null;
+  return nIdx > pIdx ? 'up' : 'down';
+}
+
 export function paintScreen(oled, scr) {
+  const dir = scr.off ? null : slideDirection(oled.dataset.scroll, scr.scroll);
+  if (scr.scroll && !scr.off) oled.dataset.scroll = scr.scroll;
+  else delete oled.dataset.scroll;
+
   oled.className = `emu-oled emu-oled--${scr.size}${scr.off ? ' is-off' : ''}`;
   oled.replaceChildren();
   if (scr.off) return;
   if (scr.iconState) oled.append(iconRow(scr.iconState));
   const box = el('div', 'emu-lines');
   for (const l of scr.lines) box.append(lineEl(l));
+  if (dir) box.classList.add(`emu-slide-${dir}`);
   oled.append(box);
 }

@@ -22,8 +22,12 @@ const line = (l) => (typeof l === 'string' ? { text: l } : l);
 
 // size 'big' = two large lines (status / menus); 'small' = four lines
 // (palette screens). icons = show the battery / input icon row.
-export function screen(lines, { size = 'big', icons = false } = {}) {
-  return { size, icons, lines: lines.map(line) };
+// scroll = "<list id>#<index>" for screens that step through a list; when only
+// the index changes, the painter slides the text like the real OLED does.
+export function screen(lines, { size = 'big', icons = false, scroll } = {}) {
+  const scr = { size, icons, lines: lines.map(line) };
+  if (scroll) scr.scroll = scroll;
+  return scr;
 }
 
 const wrapIndex = (i, n) => ((i % n) + n) % n;
@@ -40,7 +44,7 @@ export function menu({ label, title = label, items, exitAtEnds = false, showValu
     render(ctx, f) {
       const it = items[f.cursor];
       const lines = showValues ? [it.label, it.valueText ? it.valueText(ctx.state) : ''] : [title, it.label];
-      return screen(lines, { icons });
+      return screen(lines, { icons, scroll: `${label}#${f.cursor}` });
     },
     press(btn, ctx, f) {
       const n = items.length;
@@ -78,7 +82,7 @@ export function choice({ label, title = label, options, get, set, onEnter, src, 
       f.cursor = Math.max(0, i);
     },
     render(ctx, f) {
-      return screen([title, labelOf(opts(ctx.state)[f.cursor])]);
+      return screen([title, labelOf(opts(ctx.state)[f.cursor])], { scroll: `${label}#${f.cursor}` });
     },
     press(btn, ctx, f) {
       const o = opts(ctx.state);
@@ -193,7 +197,8 @@ export function action({ label, run, src, guess }) {
 
 // A full-screen editor with several lines, some editable (the Astera colour
 // palette and brightness screens). ENTER jumps between editable lines, +/-
-// edit the selected one, MENU returns to the status screen.
+// edit the selected one, MENU returns to the status screen. The selected line
+// is drawn in inverse video.
 //
 // lines: [{ text: (state) => string, field?: { get, set, min, max, step,
 //   options?: (state) => values[] , wrap? } }]
@@ -219,7 +224,7 @@ export function editor({ label, lines, size = 'small', onShow, src, guess }) {
     },
     render(ctx, f) {
       const sel = editable[f.sel];
-      return screen(lines.map((l, i) => ({ text: l.text(ctx.state), fill: i === sel })), { size });
+      return screen(lines.map((l, i) => ({ text: l.text(ctx.state), selected: i === sel })), { size });
     },
     press(btn, ctx, f) {
       if (btn === 'enter') {

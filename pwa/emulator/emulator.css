@@ -8,8 +8,10 @@
   --emu-key-ring: #26272a;
   --emu-key-text: #1b1c1e;
   --emu-oled-bg: #050608;
-  --emu-oled-text: #e9f2ff;
-  --emu-oled-glow: rgba(150, 190, 255, 0.45);
+  /* Light cyan on black, matched to photos of a Titan Tube's OLED
+     (emulators/astera/titan-tube/screens/). */
+  --emu-oled-text: #9ddcff;
+  --emu-oled-glow: rgba(110, 200, 255, 0.35);
   --emu-mark: #6d6f75;
   container-type: inline-size;
   display: flex;
@@ -80,7 +82,7 @@
     var(--emu-oled-bg);
   color: var(--emu-oled-text);
   font-family: 'DejaVu Sans Mono', Menlo, Consolas, 'Liberation Mono', ui-monospace, monospace;
-  text-shadow: 0 0 0.25em var(--emu-oled-glow);
+  text-shadow: 0 0 0.18em var(--emu-oled-glow);
   white-space: pre;
 }
 
@@ -96,7 +98,7 @@
 .emu-oled--big .emu-line {
   font-size: 9.2cqw;
   line-height: 1.12;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .emu-oled--small .emu-line {
@@ -104,18 +106,38 @@
   line-height: 1.12;
 }
 
-.emu-caret {
+.emu-caret,
+.emu-line.is-selected {
   background: var(--emu-oled-text);
   color: var(--emu-oled-bg);
   text-shadow: none;
+}
+
+/* The real OLED scrolls vertically between list entries. */
+.emu-slide-up {
+  animation: emu-slide-up 120ms ease-out;
+}
+
+.emu-slide-down {
+  animation: emu-slide-down 120ms ease-out;
+}
+
+@keyframes emu-slide-up {
+  from { transform: translateY(45%); opacity: 0.4; }
+  to { transform: none; opacity: 1; }
+}
+
+@keyframes emu-slide-down {
+  from { transform: translateY(-45%); opacity: 0.4; }
+  to { transform: none; opacity: 1; }
 }
 
 .emu-icons {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 6.4cqw;
-  font-weight: 700;
+  font-size: 6cqw;
+  font-weight: 600;
   line-height: 1;
   margin-bottom: 1.5cqw;
 }
@@ -140,8 +162,8 @@
   position: relative;
   width: 3.4cqw;
   height: 6.4cqw;
-  border: 0.6cqw solid currentColor;
-  border-radius: 0.6cqw;
+  border: 0.4cqw solid currentColor;
+  border-radius: 0.3cqw;
   box-sizing: border-box;
   background: linear-gradient(0deg, currentColor var(--level), transparent var(--level));
 }
@@ -323,5 +345,10 @@
 @media (prefers-reduced-motion: reduce) {
   .emu-btn {
     transition: none;
+  }
+
+  .emu-slide-up,
+  .emu-slide-down {
+    animation: none;
   }
 }

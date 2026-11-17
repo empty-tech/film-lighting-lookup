@@ -33,7 +33,7 @@ test('screen is dark until power is held', () => {
   emu.press('menu');
   assert.equal(emu.render().off, true);
   emu.hold('power');
-  assert.deepEqual(lines(emu), ['INPUT: DETECTING', 'SET:001 DMX:001']);
+  assert.deepEqual(lines(emu), ['INPUT: DETECTING', '']);
 });
 
 test('short power press turns the light off', () => {
@@ -42,7 +42,7 @@ test('short power press turns the light off', () => {
   emu.press('power');
   assert.equal(emu.render().off, true);
   emu.hold('power');
-  assert.deepEqual(lines(emu), ['INPUT: DETECTING', 'SET:001 DMX:001'], 'boots back to the status screen');
+  assert.deepEqual(lines(emu), ['INPUT: DETECTING', ''], 'boots back to the status screen');
 });
 
 test('holding power while on enters Blue Mode', () => {
@@ -56,13 +56,15 @@ test('main menu cycles through all entries and back to the status screen', () =>
   const emu = titanOn();
   emu.press('menu');
   const seen = [];
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 12; i++) {
     seen.push(lines(emu)[1]);
     emu.press('plus');
   }
+  // Order as photographed on a Titan (emulators/astera/titan-tube/screens/).
   assert.deepEqual(seen, [
-    'INPUT SELECT', 'STATIC COLOR', 'DMX ADDRESS', 'DMX SETTINGS', 'UNPAIR CRMX',
-    'RUNTIME', 'STANDALONE', 'AC FAILURE', 'INFO', 'RESET SETTINGS',
+    'INPUT SELECT', 'STATIC COLOR', 'DMX ADDRESS', 'DMX SETTINGS', 'TURN BY 180',
+    'UNBOND BLUETOOTH', 'UNPAIR CRMX', 'RUNTIME', 'STANDALONE', 'AC FAILURE', 'INFO',
+    'RESET SETTINGS',
   ]);
   assert.equal(lines(emu)[0], 'INPUT: DETECTING', '+ past the last entry returns to status');
 });
@@ -92,7 +94,8 @@ test('set DMX address 1 → 5, clamps at 1 and 512', () => {
   run(emu, 'plus*600');
   assert.equal(lines(emu)[1], '512');
   run(emu, 'enter menu');
-  assert.deepEqual(lines(emu), ['INPUT: DETECTING', 'SET:001 DMX:512']);
+  assert.equal(emu.state.dmxAddress, 512);
+  assert.deepEqual(lines(emu), ['INPUT: DETECTING', '']);
 });
 
 test('input select: choosing STANDALONE updates the status screen', () => {
@@ -130,7 +133,7 @@ test('DMX settings → dimmer curve', () => {
 
 test('runtime runs 1h–20h, default 5h', () => {
   const emu = titanOn();
-  run(emu, 'menu plus*5 enter');
+  run(emu, 'menu plus*7 enter');
   assert.deepEqual(lines(emu), ['RUNTIME', '5h']);
   run(emu, 'plus*30');
   assert.equal(lines(emu)[1], '20h');
@@ -147,8 +150,9 @@ test('info: radio PIN edit with +/- and MENU to move digits', () => {
   assert.equal(lines(emu)[0].slice(0, 16), 'AX1 Compatibilit');
 });
 
-test('reset settings: NO backs out, YES resets but keeps the radio PIN', () => {
+test('reset settings: NO backs out, YES resets, keeps the radio PIN, unlinks CRMX', () => {
   const emu = titanOn();
+  emu.state.crmxPaired = true; // no transmitter is simulated, so pair by hand
   run(emu, 'enter enter plus*9 enter menu'); // DMX 10
   run(emu, 'minus minus enter enter plus enter'); // PIN 1000
   run(emu, 'menu menu');
@@ -160,6 +164,7 @@ test('reset settings: NO backs out, YES resets but keeps the radio PIN', () => {
   run(emu, 'enter plus enter');
   assert.equal(emu.state.dmxAddress, 1);
   assert.equal(emu.state.radioPin, '1000');
+  assert.equal(emu.state.crmxPaired, false, 'quick guide V2: RESET unlinks CRMX');
   assert.equal(lines(emu)[0], 'INPUT: DETECTING');
 });
 
@@ -168,17 +173,19 @@ test('color palette button cycles HSI → static color → gel', () => {
   emu.press('palette');
   let scr = emu.render();
   assert.equal(scr.size, 'small');
-  assert.deepEqual(lines(emu), ['CCT : 5600 K', 'Green : 0.00', 'Hue : 0', 'Sat : 0%']);
-  assert.equal(scr.lines[0].fill, true);
+  assert.deepEqual(lines(emu), ['CCT : 5500 K', 'Green : 0.00', 'Hue : 0', 'Sat : 0%']);
+  assert.equal(scr.lines[0].selected, true);
+  assert.equal(scr.lines[1].selected, false);
   assert.equal(emu.state.inputSelect, 'STANDALONE');
   run(emu, 'plus*2 enter enter enter plus*25');
-  assert.deepEqual(lines(emu), ['CCT : 5700 K', 'Green : 0.00', 'Hue : 0', 'Sat : 25%']);
+  assert.deepEqual(lines(emu), ['CCT : 5600 K', 'Green : 0.00', 'Hue : 0', 'Sat : 25%']);
   emu.press('palette');
   assert.deepEqual(lines(emu), ['Static Color:', 'Red']);
   emu.press('palette');
-  assert.deepEqual(lines(emu), ['Color Gel:', 'Lee Daylight', '002', 'Rose Pink']);
+  assert.deepEqual(lines(emu), ['LEE Tungsten', '#002', 'Rose Pink']);
+  assert.equal(emu.render().lines[0].selected, true);
   run(emu, 'enter plus');
-  assert.equal(lines(emu)[2], '003');
+  assert.equal(lines(emu)[1], '#003');
   emu.press('menu');
   assert.equal(lines(emu)[0], 'STANDALONE');
 });
@@ -194,14 +201,14 @@ test('palette button does nothing when INPUT SELECT is a DMX source', () => {
 test('brightness button: brightness then runtime', () => {
   const emu = titanOn();
   emu.press('brightness');
-  assert.deepEqual(lines(emu), ['Brightness: 100%', 'Runtime: 5h']);
+  assert.deepEqual(lines(emu), ['Brightness: 100%', 'Runtime : 5h']);
   run(emu, 'minus*40 enter plus*3');
-  assert.deepEqual(lines(emu), ['Brightness: 60%', 'Runtime: 8h']);
+  assert.deepEqual(lines(emu), ['Brightness: 60%', 'Runtime : 8h']);
 });
 
 test('unpair CRMX shows a message that the next key dismisses', () => {
   const emu = titanOn();
-  run(emu, 'menu plus*4 enter');
+  run(emu, 'menu plus*6 enter');
   assert.deepEqual(lines(emu), ['UNPAIR CRMX', 'DONE']);
   emu.press('plus');
   assert.deepEqual(lines(emu), ['Main menu:', 'UNPAIR CRMX']);
@@ -211,7 +218,26 @@ test('idle timeout returns to the status screen', () => {
   const emu = titanOn();
   run(emu, 'menu plus*3 enter');
   emu.idle();
-  assert.equal(lines(emu)[1], 'SET:001 DMX:001');
+  assert.deepEqual(lines(emu), ['INPUT: DETECTING', '']);
+});
+
+test('TURN BY 180 is an OFF/ON setting; UNBOND BLUETOOTH shows a message', () => {
+  const emu = titanOn();
+  run(emu, 'menu plus*4 enter');
+  assert.deepEqual(lines(emu), ['TURN BY 180', 'OFF']);
+  run(emu, 'plus');
+  assert.equal(emu.state.turned, 'ON');
+  run(emu, 'enter plus enter');
+  assert.deepEqual(lines(emu), ['UNBOND BLUETOOTH', 'DONE']);
+});
+
+test('menus carry a scroll key so the screen can slide between entries', () => {
+  const emu = titanOn();
+  emu.press('menu');
+  assert.equal(emu.render().scroll, 'Main menu#0');
+  emu.press('plus');
+  assert.equal(emu.render().scroll, 'Main menu#1');
+  assert.equal(emu.render().size, 'big');
 });
 
 test('where() reports the menu path and sources', () => {
